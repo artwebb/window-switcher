@@ -61,7 +61,7 @@ pub struct App {
 impl App {
     pub fn start(config: &Config) -> Result<()> {
         let hwnd = Self::create_window()?;
-        let painter = GdiAAPainter::new(hwnd)?;
+        let painter = GdiAAPainter::new(hwnd, config.switch_apps_icon_size)?;
 
         let _foreground_watcher = ForegroundWatcher::init(&config.switch_windows_blacklist)?;
         let _keyboard_listener = KeyboardListener::init(hwnd, &config.to_hotkeys())?;
@@ -445,7 +445,7 @@ impl App {
 
     fn click(&mut self) {
         if let Some(state) = self.switch_apps_state.as_mut() {
-            if let Some(i) = find_clicked_app_index(state) {
+            if let Some(i) = find_clicked_app_index(state, self.config.switch_apps_icon_size) {
                 state.index = i;
                 self.do_switch_app();
             }
