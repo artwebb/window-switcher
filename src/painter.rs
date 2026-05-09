@@ -38,8 +38,12 @@ pub const ALPHA_MASK: u32 = 0xff000000;
 pub const DEFAULT_ICON_SIZE: i32 = 64;
 pub const MIN_ICON_SIZE: i32 = 32;
 pub const MAX_ICON_SIZE: i32 = 256;
-pub const WINDOW_BORDER_SIZE: i32 = 10;
-pub const ICON_BORDER_SIZE: i32 = 4;
+pub const DEFAULT_WINDOW_PADDING: i32 = 10;
+pub const MIN_WINDOW_PADDING: i32 = 0;
+pub const MAX_WINDOW_PADDING: i32 = 64;
+pub const DEFAULT_ICON_PADDING: i32 = 4;
+pub const MIN_ICON_PADDING: i32 = 0;
+pub const MAX_ICON_PADDING: i32 = 32;
 pub const SCALE_FACTOR: i32 = 6;
 
 // GDI Antialiasing Painter
@@ -48,12 +52,14 @@ pub struct GdiAAPainter {
     hwnd: HWND,
     hdc_screen: HDC,
     icon_size: i32,
+    icon_padding: i32,
+    window_padding: i32,
     rounded_corner: bool,
     show: bool,
 }
 
 impl GdiAAPainter {
-    pub fn new(hwnd: HWND, icon_size: i32) -> Result<Self> {
+    pub fn new(hwnd: HWND, icon_size: i32, icon_padding: i32, window_padding: i32) -> Result<Self> {
         let startup_input = GdiplusStartupInput {
             GdiplusVersion: 1,
             ..Default::default()
@@ -70,6 +76,8 @@ impl GdiAAPainter {
             hwnd,
             hdc_screen,
             icon_size,
+            icon_padding,
+            window_padding,
             rounded_corner,
             show: false,
         })
@@ -83,7 +91,13 @@ impl GdiAAPainter {
             height,
             icon_size,
             item_size,
-        } = Coordinate::new(state.apps.len() as i32, self.icon_size);
+            window_padding,
+        } = Coordinate::new(
+            state.apps.len() as i32,
+            self.icon_size,
+            self.icon_padding,
+            self.window_padding,
+        );
 
         let corner_radius = if self.rounded_corner {
             item_size / 4
@@ -142,6 +156,7 @@ impl GdiAAPainter {
                 state,
                 hdc_screen,
                 icon_size,
+                self.icon_padding,
                 icons_width,
                 icons_height,
                 corner_radius,
@@ -157,8 +172,8 @@ impl GdiAAPainter {
             GdipDrawImageRect(
                 graphics_ptr,
                 image_ptr,
-                WINDOW_BORDER_SIZE as f32,
-                WINDOW_BORDER_SIZE as f32,
+                window_padding as f32,
+                window_padding as f32,
                 icons_width as f32,
                 icons_height as f32,
             );
@@ -221,10 +236,19 @@ impl Drop for GdiAAPainter {
     }
 }
 
-pub fn find_clicked_app_index(state: &SwitchAppsState, icon_size: i32) -> Option<usize> {
+pub fn find_clicked_app_index(
+    state: &SwitchAppsState,
+    icon_size: i32,
+    icon_padding: i32,
+    window_padding: i32,
+) -> Option<usize> {
     let Coordinate {
-        x, y, item_size, ..
-    } = Coordinate::new(state.apps.len() as i32, icon_size);
+        x,
+        y,
+        item_size,
+        window_padding,
+        ..
+    } = Coordinate::new(state.apps.len() as i32, icon_size, icon_padding, window_padding);
 
     let mut cursor_pos = POINT::default();
     let _ = unsafe { GetCursorPos(&mut cursor_pos) };
@@ -232,9 +256,9 @@ pub fn find_clicked_app_index(state: &SwitchAppsState, icon_size: i32) -> Option
     let xpos = cursor_pos.x - x;
     let ypos = cursor_pos.y - y;
 
-    let cy = WINDOW_BORDER_SIZE;
+    let cy = window_padding;
     for (i, _) in state.apps.iter().enumerate() {
-        let cx = WINDOW_BORDER_SIZE + item_size * (i as i32);
+        let cx = window_padding + item_size * (i as i32);
         if xpos >= cx && xpos < cx + item_size && ypos >= cy && ypos < cy + item_size {
             return Some(i);
         }
@@ -309,6 +333,7 @@ fn draw_icons(
     state: &SwitchAppsState,
     hdc_screen: HDC,
     icon_size: i32,
+    icon_padding: i32,
     width: i32,
     height: i32,
     corner_radius: i32,
@@ -318,7 +343,7 @@ fn draw_icons(
     let scaled_width = width * SCALE_FACTOR;
     let scaled_height = height * SCALE_FACTOR;
     let scaled_corner_radius = corner_radius * SCALE_FACTOR;
-    let scaled_border_size = ICON_BORDER_SIZE * SCALE_FACTOR;
+    let scaled_border_size = icon_padding * SCALE_FACTOR;
     let scaled_icon_inner_size = icon_size * SCALE_FACTOR;
     let scaled_icon_outer_size = scaled_icon_inner_size + scaled_border_size * 2;
 
@@ -408,21 +433,26 @@ struct Coordinate {
     height: i32,
     icon_size: i32,
     item_size: i32,
+    window_padding: i32,
 }
 
 impl Coordinate {
-    fn new(num_apps: i32, configured_icon_size: i32) -> Self {
+    fn new(
+        num_apps: i32,
+        configured_icon_size: i32,
+        icon_padding: i32,
+        window_padding: i32,
+    ) -> Self {
         let monitor_rect = get_moinitor_rect();
         let monitor_width = monitor_rect.right - monitor_rect.left;
         let monitor_height = monitor_rect.bottom - monitor_rect.top;
 
-        let icon_size = ((monitor_width - 2 * WINDOW_BORDER_SIZE) / num_apps
-            - ICON_BORDER_SIZE * 2)
+        let icon_size = ((monitor_width - 2 * window_padding) / num_apps - icon_padding * 2)
             .min(configured_icon_size);
 
-        let item_size = icon_size + ICON_BORDER_SIZE * 2;
-        let width = item_size * num_apps + WINDOW_BORDER_SIZE * 2;
-        let height = item_size + WINDOW_BORDER_SIZE * 2;
+        let item_size = icon_size + icon_padding * 2;
+        let width = item_size * num_apps + window_padding * 2;
+        let height = item_size + window_padding * 2;
         let x = monitor_rect.left + (monitor_width - width) / 2;
         let y = monitor_rect.top + (monitor_height - height) / 2;
 
@@ -433,6 +463,7 @@ impl Coordinate {
             height,
             icon_size,
             item_size,
+            window_padding,
         }
     }
 }

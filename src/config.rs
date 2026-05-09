@@ -6,7 +6,10 @@ use ini::{Ini, ParseOption};
 use log::LevelFilter;
 use windows::core::w;
 
-use crate::painter::{DEFAULT_ICON_SIZE, MAX_ICON_SIZE, MIN_ICON_SIZE};
+use crate::painter::{
+    DEFAULT_ICON_PADDING, DEFAULT_ICON_SIZE, DEFAULT_WINDOW_PADDING, MAX_ICON_PADDING,
+    MAX_ICON_SIZE, MAX_WINDOW_PADDING, MIN_ICON_PADDING, MIN_ICON_SIZE, MIN_WINDOW_PADDING,
+};
 use crate::utils::{get_exe_folder, RegKey};
 
 pub const SWITCH_WINDOWS_HOTKEY_ID: u32 = 1;
@@ -27,6 +30,8 @@ pub struct Config {
     pub switch_apps_hotkey: Hotkey,
     pub switch_apps_ignore_minimal: bool,
     pub switch_apps_icon_size: i32,
+    pub switch_apps_icon_padding: i32,
+    pub switch_apps_window_padding: i32,
     pub switch_apps_override_icons: IndexMap<String, String>,
     switch_apps_only_current_desktop: Option<bool>,
 }
@@ -51,6 +56,8 @@ impl Default for Config {
                 .unwrap(),
             switch_apps_ignore_minimal: false,
             switch_apps_icon_size: DEFAULT_ICON_SIZE,
+            switch_apps_icon_padding: DEFAULT_ICON_PADDING,
+            switch_apps_window_padding: DEFAULT_WINDOW_PADDING,
             switch_apps_override_icons: Default::default(),
             switch_apps_only_current_desktop: None,
         }
@@ -123,6 +130,15 @@ impl Config {
             if let Some(v) = section.get("icon_size").and_then(Config::to_icon_size) {
                 conf.switch_apps_icon_size = v;
             }
+            if let Some(v) = section.get("icon_padding").and_then(Config::to_icon_padding) {
+                conf.switch_apps_icon_padding = v;
+            }
+            if let Some(v) = section
+                .get("window_padding")
+                .and_then(Config::to_window_padding)
+            {
+                conf.switch_apps_window_padding = v;
+            }
             if let Some(v) = section.get("override_icons").map(normalize_path_value) {
                 conf.switch_apps_override_icons = v
                     .split([',', ';'])
@@ -164,6 +180,18 @@ impl Config {
         v.parse::<i32>()
             .ok()
             .map(|v| v.clamp(MIN_ICON_SIZE, MAX_ICON_SIZE))
+    }
+
+    fn to_icon_padding(v: &str) -> Option<i32> {
+        v.parse::<i32>()
+            .ok()
+            .map(|v| v.clamp(MIN_ICON_PADDING, MAX_ICON_PADDING))
+    }
+
+    fn to_window_padding(v: &str) -> Option<i32> {
+        v.parse::<i32>()
+            .ok()
+            .map(|v| v.clamp(MIN_WINDOW_PADDING, MAX_WINDOW_PADDING))
     }
 
     /// Whether the user has configured app switching to include other desktops.
@@ -400,5 +428,44 @@ mod tests {
         let conf = Config::load(&Ini::load_from_str("[switch-apps]\nicon_size = nope").unwrap())
             .unwrap();
         assert_eq!(conf.switch_apps_icon_size, DEFAULT_ICON_SIZE);
+    }
+
+    #[test]
+    fn test_switch_apps_padding() {
+        let conf = Config::load(&Ini::load_from_str("[switch-apps]\n").unwrap()).unwrap();
+        assert_eq!(conf.switch_apps_icon_padding, DEFAULT_ICON_PADDING);
+        assert_eq!(conf.switch_apps_window_padding, DEFAULT_WINDOW_PADDING);
+
+        let conf = Config::load(
+            &Ini::load_from_str("[switch-apps]\nicon_padding = 10\nwindow_padding = 18")
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(conf.switch_apps_icon_padding, 10);
+        assert_eq!(conf.switch_apps_window_padding, 18);
+
+        let conf = Config::load(
+            &Ini::load_from_str("[switch-apps]\nicon_padding = -1\nwindow_padding = -1")
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(conf.switch_apps_icon_padding, MIN_ICON_PADDING);
+        assert_eq!(conf.switch_apps_window_padding, MIN_WINDOW_PADDING);
+
+        let conf = Config::load(
+            &Ini::load_from_str("[switch-apps]\nicon_padding = 33\nwindow_padding = 65")
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(conf.switch_apps_icon_padding, MAX_ICON_PADDING);
+        assert_eq!(conf.switch_apps_window_padding, MAX_WINDOW_PADDING);
+
+        let conf = Config::load(
+            &Ini::load_from_str("[switch-apps]\nicon_padding = nope\nwindow_padding = nope")
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(conf.switch_apps_icon_padding, DEFAULT_ICON_PADDING);
+        assert_eq!(conf.switch_apps_window_padding, DEFAULT_WINDOW_PADDING);
     }
 }
