@@ -130,7 +130,10 @@ impl Config {
             if let Some(v) = section.get("icon_size").and_then(Config::to_icon_size) {
                 conf.switch_apps_icon_size = v;
             }
-            if let Some(v) = section.get("icon_padding").and_then(Config::to_icon_padding) {
+            if let Some(v) = section
+                .get("icon_padding")
+                .and_then(Config::to_icon_padding)
+            {
                 conf.switch_apps_icon_padding = v;
             }
             if let Some(v) = section

@@ -248,7 +248,12 @@ pub fn find_clicked_app_index(
         item_size,
         window_padding,
         ..
-    } = Coordinate::new(state.apps.len() as i32, icon_size, icon_padding, window_padding);
+    } = Coordinate::new(
+        state.apps.len() as i32,
+        icon_size,
+        icon_padding,
+        window_padding,
+    );
 
     let mut cursor_pos = POINT::default();
     let _ = unsafe { GetCursorPos(&mut cursor_pos) };
