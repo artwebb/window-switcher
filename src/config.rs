@@ -413,20 +413,20 @@ mod tests {
         let conf = Config::load(&Ini::load_from_str("[switch-apps]\n").unwrap()).unwrap();
         assert_eq!(conf.switch_apps_icon_size, DEFAULT_ICON_SIZE);
 
-        let conf = Config::load(&Ini::load_from_str("[switch-apps]\nicon_size = 96").unwrap())
-            .unwrap();
+        let conf =
+            Config::load(&Ini::load_from_str("[switch-apps]\nicon_size = 96").unwrap()).unwrap();
         assert_eq!(conf.switch_apps_icon_size, 96);
 
-        let conf = Config::load(&Ini::load_from_str("[switch-apps]\nicon_size = 12").unwrap())
-            .unwrap();
+        let conf =
+            Config::load(&Ini::load_from_str("[switch-apps]\nicon_size = 12").unwrap()).unwrap();
         assert_eq!(conf.switch_apps_icon_size, MIN_ICON_SIZE);
 
-        let conf = Config::load(&Ini::load_from_str("[switch-apps]\nicon_size = 512").unwrap())
-            .unwrap();
+        let conf =
+            Config::load(&Ini::load_from_str("[switch-apps]\nicon_size = 512").unwrap()).unwrap();
         assert_eq!(conf.switch_apps_icon_size, MAX_ICON_SIZE);
 
-        let conf = Config::load(&Ini::load_from_str("[switch-apps]\nicon_size = nope").unwrap())
-            .unwrap();
+        let conf =
+            Config::load(&Ini::load_from_str("[switch-apps]\nicon_size = nope").unwrap()).unwrap();
         assert_eq!(conf.switch_apps_icon_size, DEFAULT_ICON_SIZE);
     }
 
@@ -437,24 +437,21 @@ mod tests {
         assert_eq!(conf.switch_apps_window_padding, DEFAULT_WINDOW_PADDING);
 
         let conf = Config::load(
-            &Ini::load_from_str("[switch-apps]\nicon_padding = 10\nwindow_padding = 18")
-                .unwrap(),
+            &Ini::load_from_str("[switch-apps]\nicon_padding = 10\nwindow_padding = 18").unwrap(),
         )
         .unwrap();
         assert_eq!(conf.switch_apps_icon_padding, 10);
         assert_eq!(conf.switch_apps_window_padding, 18);
 
         let conf = Config::load(
-            &Ini::load_from_str("[switch-apps]\nicon_padding = -1\nwindow_padding = -1")
-                .unwrap(),
+            &Ini::load_from_str("[switch-apps]\nicon_padding = -1\nwindow_padding = -1").unwrap(),
         )
         .unwrap();
         assert_eq!(conf.switch_apps_icon_padding, MIN_ICON_PADDING);
         assert_eq!(conf.switch_apps_window_padding, MIN_WINDOW_PADDING);
 
         let conf = Config::load(
-            &Ini::load_from_str("[switch-apps]\nicon_padding = 33\nwindow_padding = 65")
-                .unwrap(),
+            &Ini::load_from_str("[switch-apps]\nicon_padding = 33\nwindow_padding = 65").unwrap(),
         )
         .unwrap();
         assert_eq!(conf.switch_apps_icon_padding, MAX_ICON_PADDING);
